@@ -1,34 +1,43 @@
-use termion::raw::IntoRawMode;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::clear;
-use std::time::{Instant, Duration};
-use std::io::{self, ErrorKind, Write};
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::queue;
+use crossterm::terminal::{self, ClearType};
+use std::io::{self, BufWriter, Write};
+use std::time::{Duration, Instant};
 
-fn main() -> Result<(), io::Error> {
-    let mut stdout = io::stdout().into_raw_mode()?;
-    let mut keys = io::stdin().keys();
+fn main() -> crossterm::Result<()> {
+    terminal::enable_raw_mode()?;
+
+    let mut stdout = BufWriter::new(io::stdout());
 
     let mut old_tempo = None;
     let mut old_time = Instant::now();
     loop {
-        print!("{}\r", clear::CurrentLine);
+        queue!(stdout, terminal::Clear(ClearType::CurrentLine))?;
+
         match old_tempo {
-            Some(tempo) => print!("{}bpm: ", tempo),
-            None => print!("Tap: "),
-        };
+            Some(tempo) => write!(stdout, "\r{}bpm: ", tempo),
+            None => write!(stdout, "\rTap: "),
+        }?;
         stdout.flush()?;
 
-        match keys.next().ok_or(ErrorKind::UnexpectedEof)?? {
-            Key::Ctrl('c') | Key::Char('q') => break,
-            _ => {},
-        };
+        match loop {
+            let event = event::read()?;
+            if let Event::Key(key) = event {
+                break (key.code, key.modifiers);
+            }
+        } {
+            (KeyCode::Char('c'), KeyModifiers::CONTROL) | (KeyCode::Char('q'), ..) => break,
+            _ => (),
+        }
 
         let time = Instant::now();
-        old_tempo = Duration::from_secs(60).as_nanos().checked_div((time - old_time).as_nanos());
+        old_tempo = Duration::from_secs(60)
+            .as_nanos()
+            .checked_div((time - old_time).as_nanos());
         old_time = time;
     }
     print!("\n\r");
+    terminal::disable_raw_mode()?;
 
     Ok(())
 }

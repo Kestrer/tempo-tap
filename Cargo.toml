@@ -5,11 +5,11 @@ repository = "https://github.com/Koxiaet/tempo-tap"
 readme = "README.md"
 keywords = ["tempo", "music"]
 license = "MIT OR Apache-2.0"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Koxiaet <38139193+Koxiaet@users.noreply.github.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-termion = "1.5.4"
+crossterm = "0.17.5"
